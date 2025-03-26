@@ -5,18 +5,28 @@ import { NavigationContainer } from '@react-navigation/native';
 import HomeScreen from "./src/screen/HomeScreen.jsx";
 import LoginScreen from "./src/screen/LoginScreen.jsx";
 import SignupScreen from "./src/screen/SignupScreen.jsx";
-import SettingsScreen from "./src/screen/SettingsScreen.jsx"; 
+import SettingsScreen from "./src/screen/SettingsScreen.jsx";
+import KDashboard from "./src/screen/KDashboard.jsx";
+import FaceDetectionGame from "./src/screen/FaceDetectionGame.jsx";
+import SignLanguageGame from "./src/screen/SignLanguageGame.jsx";
+import PhonicsGame from "./src/screen/PhonicsGame.jsx";
+import CardDetectionGame from "./src/screen/CardDetectionGame.jsx";
 
 const Stack = createNativeStackNavigator();
 
 const App = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{headerShown: false, }}>
+      <Stack.Navigator screenOptions={{headerShown: false}}>
         <Stack.Screen name="HOME" component={HomeScreen} />
         <Stack.Screen name="LOGIN" component={LoginScreen} />
         <Stack.Screen name="SIGNUP" component={SignupScreen} />
+        <Stack.Screen name="KDASHBOARD" component={KDashboard} />
         <Stack.Screen name="SETTINGS" component={SettingsScreen} />
+        <Stack.Screen name="FACE_DETECTION" component={FaceDetectionGame} />
+        <Stack.Screen name="SIGN_LANGUAGE" component={SignLanguageGame} />
+        <Stack.Screen name="PHONICS" component={PhonicsGame} />
+        <Stack.Screen name="CARD_DETECTION" component={CardDetectionGame} />
       </Stack.Navigator>
     </NavigationContainer>
   );

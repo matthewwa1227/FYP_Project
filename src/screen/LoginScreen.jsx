@@ -14,6 +14,10 @@ const LoginScreen = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
+  const handleKDashboard = () => {
+    navigation.navigate("KDASHBOARD");
+  };
+
   const handleGoBack = () => {
     navigation.goBack();
   };
@@ -60,9 +64,11 @@ const LoginScreen = () => {
       // Here you would typically make an API call to authenticate the user
       // For this example, we'll mock a successful login with some test credentials
       if (email === 'test@example.com' && password === 'password123') {
-        Alert.alert('Success', 'Login successful!');
-        // Navigate to your main app screen after successful login
-        // navigation.navigate("MAIN_APP");
+        Alert.alert('Success', 'Login successful!', [
+          { text: 'OK', onPress: () => navigation.navigate("KDASHBOARD") }
+        ]);
+        // Or you can directly navigate without the alert:
+        // navigation.navigate("KDASHBOARD");
       } else {
         Alert.alert('Login Failed', 'Invalid email or password');
       }
@@ -277,7 +283,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.Regular,
   },
   signupText:{
-    fontSize: 14,  // Increased from 8 to be more readable
+    fontSize: 14,
     color:colors.primary,
     fontFamily: fonts.SemiBold,
     marginLeft: 5,

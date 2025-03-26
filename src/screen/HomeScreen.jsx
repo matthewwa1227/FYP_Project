@@ -3,6 +3,7 @@ import React from 'react';
 import { colors } from "../utils/colors.js";
 import { fonts } from "../utils/fonts.js";
 import { useNavigation } from '@react-navigation/native';
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 const HomeScreen = () => {
   const navigation = useNavigation();
@@ -12,9 +13,21 @@ const HomeScreen = () => {
   const handleSignUp = () => {
     navigation.navigate("SIGNUP");
   };
+  
+  const handleSettings = () => {
+    navigation.navigate("SETTINGS");
+  };
    
   return (
     <View style={styles.container}>
+      {/* Settings button in top right */}
+      <TouchableOpacity 
+        style={styles.settingsButton} 
+        onPress={handleSettings}
+      >
+        <Ionicons name="settings-outline" size={28} color={colors.primary} />
+      </TouchableOpacity>
+      
       <Image source={require("../assets/ABC_logo.png")} style={styles.logo} />
       <Image source={require("../assets/rpanda.png")} style={styles.bannerImage} />
       <Text style={styles.title}>Meet Our Pixel Pals</Text>
@@ -28,7 +41,6 @@ const HomeScreen = () => {
         </TouchableOpacity>
       </View>
     </View>
-
   );
 };
 
@@ -40,6 +52,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     alignItems: "center",
   },
+  settingsButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    zIndex: 1,
+    padding: 10,
+  },
   logo: {
     height: 120,
     width: 140,
@@ -49,7 +68,6 @@ const styles = StyleSheet.create({
     marginVertical:20,
     height: 250,
     width: 231,
-
   },
   title: {
     fontSize: 40,
@@ -65,29 +83,29 @@ const styles = StyleSheet.create({
     color: colors.scondary,
     testAlign: "center",
     marginVertical: 20,
-    }, 
-    buttonContainer: {
-      flexDirection: "row",
-      borderWidth: 2,
-      borderColor:colors.primary,
-      width: "80%",
-      height: 60,
-      borderRadius: 100,
-    },
-    loginButtonWrapper: {
-      justifyContent: "center",
-      alignItems: "center",
-      width: "50%",
-      borderRadius: 98,
-    },
-    loginButtonText: {
-      color: colors.white,
-      fontSize: 18,
-      fontFamily: fonts.SemiBold,
-    },
-    signupButtonText: {
-      height: 55,
-      fontSize: 32,
-      fontFamily: fonts.Medium, 
-    }
+  }, 
+  buttonContainer: {
+    flexDirection: "row",
+    borderWidth: 2,
+    borderColor:colors.primary,
+    width: "80%",
+    height: 60,
+    borderRadius: 100,
+  },
+  loginButtonWrapper: {
+    justifyContent: "center",
+    alignItems: "center",
+    width: "50%",
+    borderRadius: 98,
+  },
+  loginButtonText: {
+    color: colors.white,
+    fontSize: 18,
+    fontFamily: fonts.SemiBold,
+  },
+  signupButtonText: {
+    height: 55,
+    fontSize: 32,
+    fontFamily: fonts.Medium, 
+  }
 });

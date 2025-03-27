@@ -1,43 +1,160 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View, ScrollView, Dimensions } from 'react-native';
-import React from 'react';
-import { colors } from "../utils/colors.js";
-import { fonts } from "../utils/fonts.js";
+import React, { useEffect, useState } from 'react';
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+  ScrollView,
+  Dimensions,
+  SafeAreaView,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import Ionicons from "react-native-vector-icons/Ionicons";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import { colors } from '../utils/colors';
+import { fonts } from '../utils/fonts';
+import config from '../config/config';
 
 const { width } = Dimensions.get('window');
 const cardWidth = width * 0.42;
 
 const KDashboard = () => {
   const navigation = useNavigation();
+  const [userData, setUserData] = useState(null);
+  const [kidProfiles, setKidProfiles] = useState([]);
+  const [gameSessions, setGameSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const handleSettings = () => {
-    navigation.navigate("SETTINGS");
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+      // Get user data from AsyncStorage
+      const userDataString = await AsyncStorage.getItem('userData');
+      const token = await AsyncStorage.getItem('userToken');
+
+      if (!userDataString || !token) {
+        throw new Error('No user data found');
+      }
+
+      const user = JSON.parse(userDataString);
+      setUserData(user);
+
+      // Only fetch kid profiles if user role is 'student'
+      if (user.role === 'student') {
+        // Fetch kid profiles using your API endpoint URL from config
+        const kidProfilesResponse = await fetch(
+          `${config.API_BASE_URL}${config.KID_PROFILES.GET_BY_PARENT.replace(
+            ':id',
+            user.id
+          )}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (!kidProfilesResponse.ok) {
+          throw new Error('Failed to fetch kid profiles');
+        }
+
+        const kidProfilesData = await kidProfilesResponse.json();
+        setKidProfiles(kidProfilesData);
+
+        // If there are kid profiles, fetch game sessions for the first kid
+        if (kidProfilesData.length > 0) {
+          const gameSessionsResponse = await fetch(
+            `${config.API_BASE_URL}${config.GAME_SESSIONS.GET_BY_KID.replace(
+              ':id',
+              kidProfilesData[0].id
+            )}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+
+          if (!gameSessionsResponse.ok) {
+            throw new Error('Failed to fetch game sessions');
+          }
+
+          const gameSessionsData = await gameSessionsResponse.json();
+          setGameSessions(gameSessionsData);
+        }
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError(err.message);
+      setLoading(false);
+
+      // For development/testing purposes only
+      if (__DEV__) {
+        setUserData({
+          id: 1,
+          name: 'Test User',
+          email: 'test@example.com',
+          role: 'student',
+        });
+        setKidProfiles([
+          { id: 1, kid_name: 'Tommy', level: 2, score: 150 },
+          { id: 2, kid_name: 'Sarah', level: 3, score: 240 },
+        ]);
+        setGameSessions([
+          { id: 1, game: 'Puzzle Game', score: 35, session_date: '2025-03-27' },
+          { id: 2, game: 'Math Challenge', score: 42, session_date: '2025-03-26' },
+        ]);
+      }
+    }
   };
 
-  const handleLogout = () => {
-    // Implement logout functionality here
-    navigation.navigate("HOME");
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('userToken');
+      await AsyncStorage.removeItem('userData');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'LOGIN' }],
+      });
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
+
+  const handleSettings = () => {
+    navigation.navigate('SETTINGS');
   };
 
   const navigateToGame = (gameType) => {
-    // Navigate to the specific game screen
     navigation.navigate(gameType);
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading dashboard...</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      {/* Header with user info and header buttons */}
       <View style={styles.header}>
         <View style={styles.userInfoContainer}>
-          <Image 
-            source={require("../assets/cat.png")} 
-            style={styles.avatar}
-          />
+          <Image source={require('../assets/cat.png')} style={styles.avatar} />
           <View style={styles.welcomeTextContainer}>
             <Text style={styles.welcomeText}>Hello,</Text>
-            <Text style={styles.nameText}>Little Explorer!</Text>
+            <Text style={styles.nameText}>
+              {userData ? userData.name : 'Explorer'}
+            </Text>
           </View>
         </View>
         <View style={styles.headerButtons}>
@@ -50,6 +167,7 @@ const KDashboard = () => {
         </View>
       </View>
 
+      {/* Progress section */}
       <View style={styles.progressContainer}>
         <Text style={styles.progressTitle}>Your Learning Journey</Text>
         <View style={styles.progressBarContainer}>
@@ -60,65 +178,79 @@ const KDashboard = () => {
         </View>
       </View>
 
+      {/* Section Title */}
       <Text style={styles.sectionTitle}>Choose Your Adventure!</Text>
 
+      {/* Game cards and recent activity */}
       <ScrollView showsVerticalScrollIndicator={false} style={styles.gameCardsContainer}>
         <View style={styles.gameCardsRow}>
           {/* Face Detection Game Card */}
-          <TouchableOpacity 
-            style={[styles.gameCard, { backgroundColor: '#FFD6D6' }]} 
+          <TouchableOpacity
+            style={[styles.gameCard, { backgroundColor: '#FFD6D6' }]}
             onPress={() => navigateToGame('FACE_DETECTION')}
           >
             <View style={[styles.iconCircle, { backgroundColor: '#FF9999' }]}>
               <FontAwesome5 name="smile-beam" size={40} color="#FF5252" />
             </View>
             <Text style={styles.gameTitle}>Face Detection</Text>
-            <Text style={styles.gameDescription}>Learn emotions through fun face games!</Text>
+            <Text style={styles.gameDescription}>
+              Learn emotions through fun face games!
+            </Text>
           </TouchableOpacity>
 
           {/* Sign Language Game Card */}
-          <TouchableOpacity 
-            style={[styles.gameCard, { backgroundColor: '#D6E5FF' }]} 
+          <TouchableOpacity
+            style={[styles.gameCard, { backgroundColor: '#D6E5FF' }]}
             onPress={() => navigateToGame('SIGN_LANGUAGE')}
           >
             <View style={[styles.iconCircle, { backgroundColor: '#99BBFF' }]}>
               <FontAwesome5 name="hands" size={40} color="#3366CC" />
             </View>
             <Text style={styles.gameTitle}>Sign Language</Text>
-            <Text style={styles.gameDescription}>Learn to communicate with signs!</Text>
+            <Text style={styles.gameDescription}>
+              Learn to communicate with signs!
+            </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.gameCardsRow}>
           {/* Phonics Game Card */}
-          <TouchableOpacity 
-            style={[styles.gameCard, { backgroundColor: '#D8F5D6' }]} 
+          <TouchableOpacity
+            style={[styles.gameCard, { backgroundColor: '#D8F5D6' }]}
             onPress={() => navigateToGame('PHONICS')}
           >
             <View style={[styles.iconCircle, { backgroundColor: '#A3E39E' }]}>
-              <MaterialCommunityIcons name="alphabetical" size={40} color="#4CAF50" />
+              <MaterialCommunityIcons
+                name="alphabetical"
+                size={40}
+                color="#4CAF50"
+              />
             </View>
             <Text style={styles.gameTitle}>Phonics</Text>
-            <Text style={styles.gameDescription}>Learn letter sounds and pronunciation!</Text>
+            <Text style={styles.gameDescription}>
+              Learn letter sounds and pronunciation!
+            </Text>
           </TouchableOpacity>
 
           {/* Card Detection Game Card */}
-          <TouchableOpacity 
-            style={[styles.gameCard, { backgroundColor: '#FFF0D6' }]} 
+          <TouchableOpacity
+            style={[styles.gameCard, { backgroundColor: '#FFF0D6' }]}
             onPress={() => navigateToGame('CARD_DETECTION')}
           >
             <View style={[styles.iconCircle, { backgroundColor: '#FFD699' }]}>
               <MaterialCommunityIcons name="cards" size={40} color="#FF9800" />
             </View>
             <Text style={styles.gameTitle}>Card Detection</Text>
-            <Text style={styles.gameDescription}>Discover objects and learn new words!</Text>
+            <Text style={styles.gameDescription}>
+              Discover objects and learn new words!
+            </Text>
           </TouchableOpacity>
         </View>
 
         {/* Recent Activity Section */}
         <View style={styles.recentActivityContainer}>
           <Text style={styles.activityTitle}>Recent Activity</Text>
-          
+
           <View style={styles.activityItem}>
             <View style={[styles.activityIcon, { backgroundColor: '#FFD6D6' }]}>
               <FontAwesome5 name="smile-beam" size={20} color="#FF5252" />
@@ -133,7 +265,7 @@ const KDashboard = () => {
               <Ionicons name="star" size={16} color="#FFD700" />
             </View>
           </View>
-          
+
           <View style={styles.activityItem}>
             <View style={[styles.activityIcon, { backgroundColor: '#D6E5FF' }]}>
               <FontAwesome5 name="hands" size={20} color="#3366CC" />
@@ -150,11 +282,9 @@ const KDashboard = () => {
           </View>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
-
-export default KDashboard;
 
 const styles = StyleSheet.create({
   container: {
@@ -188,8 +318,8 @@ const styles = StyleSheet.create({
   },
   nameText: {
     fontSize: 20,
-    color: colors.primary,
     fontFamily: fonts.SemiBold,
+    color: colors.primary,
   },
   headerButtons: {
     flexDirection: 'row',
@@ -318,4 +448,17 @@ const styles = StyleSheet.create({
   starContainer: {
     flexDirection: 'row',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: fonts.Regular,
+    color: colors.primary,
+    marginTop: 10,
+  },
 });
+
+export default KDashboard;

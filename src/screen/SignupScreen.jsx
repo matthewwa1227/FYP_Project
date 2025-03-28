@@ -4,7 +4,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import SimpleLineIcons from "react-native-vector-icons/SimpleLineIcons";
 import { colors } from "../utils/colors.js";
 import { fonts } from "../utils/fonts.js";
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import config from '../config/config'; // Make sure this import works
 
 const SignupScreen = () => {
@@ -27,6 +27,9 @@ const SignupScreen = () => {
   // Loading state
   const [isLoading, setIsLoading] = useState(false);
   
+  // Registration success state
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  
   // Debug mode for development
   const [debugMessage, setDebugMessage] = useState('');
 
@@ -47,7 +50,7 @@ const SignupScreen = () => {
   };
 
   const handleLogin = () => {
-    navigation.navigate("LOGIN");
+    navigation.navigate("LOGIN", { email: email });
   };
   
   // Validation functions
@@ -106,15 +109,6 @@ const SignupScreen = () => {
     }
   };
   
-  // Safe alert function that checks if component is mounted
-  const safeAlert = (title, message, buttons = [{ text: 'OK' }]) => {
-    if (isMounted.current) {
-      setTimeout(() => {
-        Alert.alert(title, message, buttons);
-      }, 300); // Small delay to ensure UI is ready
-    }
-  };
-  
   // Handle signup
   const handleSignup = async () => {
     // First validate all inputs
@@ -163,11 +157,8 @@ const SignupScreen = () => {
           throw new Error(data.message || 'Registration failed');
         }
         
-        // Instead of showing alert immediately, navigate first and then show toast/message
-        navigation.navigate('LOGIN', { 
-          email: email,
-          showSuccessMessage: true
-        });
+        // Set registration success instead of showing alert
+        setRegistrationSuccess(true);
       } catch (error) {
         if (!isMounted.current) return;
         setIsLoading(false);
@@ -176,20 +167,8 @@ const SignupScreen = () => {
         
         if (error.message.includes('Email already registered')) {
           setEmailError('This email is already registered. Please use a different email or try logging in.');
-          
-          safeAlert(
-            'Email Already Registered',
-            'This email address is already registered. Would you like to login instead?',
-            [
-              { text: 'Try Different Email', style: 'cancel' },
-              { 
-                text: 'Go to Login', 
-                onPress: () => navigation.navigate('LOGIN', { email: email })
-              }
-            ]
-          );
         } else {
-          safeAlert(
+          Alert.alert(
             'Registration Failed',
             error.message || 'Something went wrong. Please try again.'
           );
@@ -204,6 +183,33 @@ const SignupScreen = () => {
     setEmail(testEmail);
     setEmailError('');
   };
+  
+  // Render success view instead of form when registration is successful
+  if (registrationSuccess) {
+    return (
+      <View style={styles.container}>
+        <Image 
+          source={require("../assets/cat.png")} 
+          style={styles.catImage} 
+        />
+        
+        <View style={styles.successContainer}>
+          <Ionicons name="checkmark-circle" size={100} color={colors.primary} />
+          <Text style={styles.successTitle}>Registration Successful!</Text>
+          <Text style={styles.successText}>
+            Your account has been created successfully. You can now login with your credentials.
+          </Text>
+          
+          <TouchableOpacity 
+            style={styles.loginButtonWrapper}
+            onPress={() => navigation.navigate("LOGIN", { email: email })}
+          >
+            <Text style={styles.loginBtnText}>Proceed to Login</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -483,4 +489,38 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#333',
   },
+  // Success screen styles
+  successContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  successTitle: {
+    fontSize: 28,
+    fontFamily: fonts.SemiBold,
+    color: colors.primary,
+    marginTop: 20,
+    textAlign: 'center',
+  },
+  successText: {
+    fontSize: 16,
+    fontFamily: fonts.Regular,
+    color: colors.secondary || colors.scondary,
+    textAlign: 'center',
+    marginTop: 10,
+    marginBottom: 30,
+  },
+  loginButtonWrapper: {
+    backgroundColor: colors.primary,
+    borderRadius: 100,
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    marginTop: 20,
+  },
+  loginBtnText: {
+    color: colors.white,
+    fontSize: 18,
+    fontFamily: fonts.SemiBold,
+  }
 });

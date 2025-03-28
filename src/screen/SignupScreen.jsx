@@ -1,14 +1,15 @@
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Ionicons from "react-native-vector-icons/Ionicons";
 import SimpleLineIcons from "react-native-vector-icons/SimpleLineIcons";
 import { colors } from "../utils/colors.js";
 import { fonts } from "../utils/fonts.js";
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import config from '../config/config'; // Make sure this import works
 
 const SignupScreen = () => {
   const navigation = useNavigation();
+  const isMounted = useRef(true);
   
   // Form states
   const [name, setName] = useState('');
@@ -28,6 +29,14 @@ const SignupScreen = () => {
   
   // Debug mode for development
   const [debugMessage, setDebugMessage] = useState('');
+
+  // Track component mounting state
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const handleGoBack = () => {
     if (navigation.canGoBack()) {
@@ -97,6 +106,15 @@ const SignupScreen = () => {
     }
   };
   
+  // Safe alert function that checks if component is mounted
+  const safeAlert = (title, message, buttons = [{ text: 'OK' }]) => {
+    if (isMounted.current) {
+      setTimeout(() => {
+        Alert.alert(title, message, buttons);
+      }, 300); // Small delay to ensure UI is ready
+    }
+  };
+  
   // Handle signup
   const handleSignup = async () => {
     // First validate all inputs
@@ -138,50 +156,42 @@ const SignupScreen = () => {
         console.log('Registration response:', data);
         setDebugMessage(`Registration response: ${JSON.stringify(data)}`);
         
+        if (!isMounted.current) return;
+        setIsLoading(false);
+        
         if (!response.ok) {
           throw new Error(data.message || 'Registration failed');
         }
         
-        setIsLoading(false);
-        Alert.alert(
-          'Success',
-          'Your account has been created successfully!',
-          [
-            {
-              text: 'Login Now',
-              onPress: () => navigation.navigate('LOGIN')
-            }
-          ]
-        );
+        // Instead of showing alert immediately, navigate first and then show toast/message
+        navigation.navigate('LOGIN', { 
+          email: email,
+          showSuccessMessage: true
+        });
       } catch (error) {
+        if (!isMounted.current) return;
         setIsLoading(false);
         console.error('Registration error:', error);
         setDebugMessage(`Registration error: ${error.message}`);
         
         if (error.message.includes('Email already registered')) {
           setEmailError('This email is already registered. Please use a different email or try logging in.');
-        } else {
-          Alert.alert(
-            'Registration Failed',
-            error.message || 'Something went wrong. Please try again.'
-          );
-        }
-        
-        // Development fallback for testing
-        if (__DEV__) {
-          Alert.alert(
-            'Development Mode',
-            'Would you like to proceed to login anyway for testing?',
+          
+          safeAlert(
+            'Email Already Registered',
+            'This email address is already registered. Would you like to login instead?',
             [
-              { text: 'No', style: 'cancel' },
+              { text: 'Try Different Email', style: 'cancel' },
               { 
-                text: 'Yes', 
-                onPress: () => {
-                  // Store the email for login screen
-                  navigation.navigate('LOGIN', { email: email });
-                }
+                text: 'Go to Login', 
+                onPress: () => navigation.navigate('LOGIN', { email: email })
               }
             ]
+          );
+        } else {
+          safeAlert(
+            'Registration Failed',
+            error.message || 'Something went wrong. Please try again.'
           );
         }
       }
@@ -190,7 +200,7 @@ const SignupScreen = () => {
 
   // For testing - try a specific email that might work
   const tryTestEmail = () => {
-    const testEmail = 'newuser_' + Math.floor(Math.random() * 1000) + '@example.com';
+    const testEmail = 'newuser_' + Math.floor(Math.random() * 10000) + '@example.com';
     setEmail(testEmail);
     setEmailError('');
   };

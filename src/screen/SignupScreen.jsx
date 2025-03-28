@@ -25,9 +25,16 @@ const SignupScreen = () => {
   
   // Loading state
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Debug mode for development
+  const [debugMessage, setDebugMessage] = useState('');
 
   const handleGoBack = () => {
-    navigation.goBack();
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate("HOME");
+    }
   };
 
   const handleLogin = () => {
@@ -100,23 +107,36 @@ const SignupScreen = () => {
     
     if (isNameValid && isEmailValid && isPasswordValid && isPhoneValid) {
       setIsLoading(true);
+      setDebugMessage('Starting registration...');
+      
+      // Registration payload
+      const registrationData = {
+        name: name,
+        email: email.trim().toLowerCase(), // Normalize email
+        password: password,
+        phone: phone,
+        role: 'student' // Default role
+      };
       
       try {
+        console.log('Attempting registration with:', {
+          url: `${config.API_BASE_URL}${config.AUTH.REGISTER}`,
+          data: registrationData
+        });
+        
+        setDebugMessage(`Sending request to ${config.API_BASE_URL}${config.AUTH.REGISTER}`);
+        
         const response = await fetch(`${config.API_BASE_URL}${config.AUTH.REGISTER}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            name: name,
-            email: email,
-            password: password,
-            phone: phone,
-            role: 'student' // Default role
-          }),
+          body: JSON.stringify(registrationData),
         });
         
         const data = await response.json();
+        console.log('Registration response:', data);
+        setDebugMessage(`Registration response: ${JSON.stringify(data)}`);
         
         if (!response.ok) {
           throw new Error(data.message || 'Registration failed');
@@ -136,25 +156,43 @@ const SignupScreen = () => {
       } catch (error) {
         setIsLoading(false);
         console.error('Registration error:', error);
+        setDebugMessage(`Registration error: ${error.message}`);
         
-        Alert.alert(
-          'Registration Failed',
-          error.message || 'Something went wrong. Please try again.'
-        );
+        if (error.message.includes('Email already registered')) {
+          setEmailError('This email is already registered. Please use a different email or try logging in.');
+        } else {
+          Alert.alert(
+            'Registration Failed',
+            error.message || 'Something went wrong. Please try again.'
+          );
+        }
         
-        // Development fallback
+        // Development fallback for testing
         if (__DEV__) {
           Alert.alert(
             'Development Mode',
-            'Would you like to proceed to login anyway?',
+            'Would you like to proceed to login anyway for testing?',
             [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Yes', onPress: () => navigation.navigate('LOGIN') }
+              { text: 'No', style: 'cancel' },
+              { 
+                text: 'Yes', 
+                onPress: () => {
+                  // Store the email for login screen
+                  navigation.navigate('LOGIN', { email: email });
+                }
+              }
             ]
           );
         }
       }
     }
+  };
+
+  // For testing - try a specific email that might work
+  const tryTestEmail = () => {
+    const testEmail = 'newuser_' + Math.floor(Math.random() * 1000) + '@example.com';
+    setEmail(testEmail);
+    setEmailError('');
   };
 
   return (
@@ -180,11 +218,11 @@ const SignupScreen = () => {
       <View style={styles.formContainer}>
         {/* Name Input */}
         <View style={styles.inputContainer}>
-          <Ionicons name="person-outline" size={30} color={colors.scondary} />
+          <Ionicons name="person-outline" size={30} color={colors.secondary || colors.scondary} />
           <TextInput 
             style={styles.textInput} 
             placeholder="Enter your name" 
-            placeholderTextColor={colors.secondary}
+            placeholderTextColor={colors.secondary || colors.scondary}
             value={name}
             onChangeText={(text) => {
               setName(text);
@@ -197,11 +235,11 @@ const SignupScreen = () => {
         
         {/* Email Input */}
         <View style={styles.inputContainer}>
-          <Ionicons name="mail-outline" size={30} color={colors.scondary} />
+          <Ionicons name="mail-outline" size={30} color={colors.secondary || colors.scondary} />
           <TextInput 
             style={styles.textInput} 
             placeholder="Enter your email" 
-            placeholderTextColor={colors.secondary} 
+            placeholderTextColor={colors.secondary || colors.scondary}
             keyboardType='email-address'
             value={email}
             onChangeText={(text) => {
@@ -211,16 +249,21 @@ const SignupScreen = () => {
             onBlur={() => validateEmail(email)}
             autoCapitalize="none"
           />
+          {__DEV__ && (
+            <TouchableOpacity onPress={tryTestEmail}>
+              <Ionicons name="refresh-outline" size={20} color={colors.primary} />
+            </TouchableOpacity>
+          )}
         </View>
         {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
         
         {/* Password Input */}
         <View style={styles.inputContainer}>
-          <SimpleLineIcons name="lock" size={30} color={colors.scondary} />
+          <SimpleLineIcons name="lock" size={30} color={colors.secondary || colors.scondary} />
           <TextInput 
             style={styles.textInput} 
             placeholder="Enter your password" 
-            placeholderTextColor={colors.secondary} 
+            placeholderTextColor={colors.secondary || colors.scondary}
             secureTextEntry={secureEntry}
             value={password}
             onChangeText={(text) => {
@@ -232,10 +275,10 @@ const SignupScreen = () => {
           <TouchableOpacity onPress={() => {
             setSecureEntry((prev) => !prev);
           }}>
-            <SimpleLineIcons 
-              name={secureEntry ? "eye" : "eyeoff"} 
+            <Ionicons 
+              name={secureEntry ? "eye-outline" : "eye-off-outline"} 
               size={20} 
-              color={colors.scondary} 
+              color={colors.secondary || colors.scondary} 
             />
           </TouchableOpacity>
         </View>
@@ -243,11 +286,11 @@ const SignupScreen = () => {
         
         {/* Phone Input */}
         <View style={styles.inputContainer}>
-          <SimpleLineIcons name="screen-smartphone" size={30} color={colors.scondary} />
+          <SimpleLineIcons name="screen-smartphone" size={30} color={colors.secondary || colors.scondary} />
           <TextInput 
             style={styles.textInput} 
             placeholder="Enter your phone no" 
-            placeholderTextColor={colors.secondary} 
+            placeholderTextColor={colors.secondary || colors.scondary}
             keyboardType="phone-pad"
             value={phone}
             onChangeText={(text) => {
@@ -288,6 +331,12 @@ const SignupScreen = () => {
             <Text style={styles.loginText}>Login</Text>
           </TouchableOpacity>
         </View>
+        
+        {__DEV__ && debugMessage ? (
+          <View style={styles.debugContainer}>
+            <Text style={styles.debugText}>{debugMessage}</Text>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -330,7 +379,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     borderWidth: 1,
-    borderColor: colors.scondary,
+    borderColor: colors.secondary || colors.scondary,
     borderRadius: 100,
     paddingHorizontal: 20,
     flexDirection: "row",
@@ -412,5 +461,16 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontFamily: fonts.SemiBold,
     marginLeft: 5,
+  },
+  debugContainer: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
+  },
+  debugText: {
+    fontFamily: fonts.Regular,
+    fontSize: 12,
+    color: '#333',
   },
 });

@@ -18,13 +18,16 @@ const LoginScreen = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [canGoBack, setCanGoBack] = useState(false);
+
+  // Check if we can go back
+  useEffect(() => {
+    setCanGoBack(navigation.canGoBack());
+  }, [navigation]);
 
   const handleGoBack = () => {
     if (navigation.canGoBack()) {
       navigation.goBack();
-    } else {
-      // Navigate to HOME screen when there's nowhere to go back
-      navigation.navigate("HOME");
     }
   };
 
@@ -126,12 +129,6 @@ const LoginScreen = () => {
         setIsLoading(false);
         console.error('Login error:', error);
         
-        // Show error message to user
-        Alert.alert(
-          'Login Failed', 
-          error.message || 'Invalid email or password. Please try again.'
-        );
-        
         // For development/testing only - allow fallback login
         if (__DEV__) {
           Alert.alert(
@@ -140,14 +137,13 @@ const LoginScreen = () => {
             [
               { text: 'Cancel', style: 'cancel' },
               { 
-                text: 'Yes', 
+                text: 'Login as Teacher', 
                 onPress: () => {
-                  // Store mock user data
                   const mockUserData = {
-                    id: 1,
-                    name: 'Test User',
-                    email: 'test@example.com',
-                    role: 'student'
+                    id: 2,
+                    name: 'Test Teacher',
+                    email: 'teacher@example.com',
+                    role: 'teacher'
                   };
                   
                   AsyncStorage.setItem('userData', JSON.stringify(mockUserData))
@@ -156,13 +152,41 @@ const LoginScreen = () => {
                         .then(() => {
                           navigation.reset({
                             index: 0,
-                            routes: [{ name: 'KDASHBOARD' }],
+                            routes: [{ name: 'TEACHER_DASHBOARD' }],
+                          });
+                        });
+                    });
+                } 
+              },
+              { 
+                text: 'Login as Parent', 
+                onPress: () => {
+                  const mockUserData = {
+                    id: 3,
+                    name: 'Test Parent',
+                    email: 'parent@example.com',
+                    role: 'parent'
+                  };
+                  
+                  AsyncStorage.setItem('userData', JSON.stringify(mockUserData))
+                    .then(() => {
+                      AsyncStorage.setItem('userToken', 'mock-token')
+                        .then(() => {
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: 'PARENT_DASHBOARD' }],
                           });
                         });
                     });
                 } 
               }
             ]
+          );
+        } else {
+          // Show error message to user in production
+          Alert.alert(
+            'Login Failed', 
+            error.message || 'Invalid email or password. Please try again.'
           );
         }
       }
@@ -181,13 +205,15 @@ const LoginScreen = () => {
         style={styles.catImage} 
       />
       
-      <TouchableOpacity style={styles.backButtonWrapper} onPress={handleGoBack}>
-        <Ionicons
-          name="arrow-back-outline"
-          color="black"
-          size={30}
-        />
-      </TouchableOpacity>
+      {canGoBack && (
+        <TouchableOpacity style={styles.backButtonWrapper} onPress={handleGoBack}>
+          <Ionicons
+            name="arrow-back-outline"
+            color="black"
+            size={30}
+          />
+        </TouchableOpacity>
+      )}
       
       <View style={styles.textContainer}>
         <Text style={styles.headingText}>Hey,</Text>

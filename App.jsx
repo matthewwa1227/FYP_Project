@@ -7,6 +7,9 @@ import LoginScreen from "./src/screen/LoginScreen.jsx";
 import SignupScreen from "./src/screen/SignupScreen.jsx";
 import SettingsScreen from "./src/screen/SettingsScreen.jsx";
 import KDashboard from "./src/screen/KDashboard.jsx";
+import TeacherDashboard from "./src/screen/TeacherDashboard.jsx";
+import AdminDashboard from "./src/screen/AdminDashboard.jsx";
+import ParentDashboard from "./src/screen/ParentDashboard.jsx";
 import FaceDetectionGame from "./src/screen/FaceDetectionGame.jsx";
 import SignLanguageGame from "./src/screen/SignLanguageGame.jsx";
 import PhonicsGame from "./src/screen/PhonicsGame.jsx";
@@ -22,6 +25,9 @@ const App = () => {
         <Stack.Screen name="LOGIN" component={LoginScreen} />
         <Stack.Screen name="SIGNUP" component={SignupScreen} />
         <Stack.Screen name="KDASHBOARD" component={KDashboard} />
+        <Stack.Screen name="TEACHER_DASHBOARD" component={TeacherDashboard} />
+        <Stack.Screen name="ADMIN_DASHBOARD" component={AdminDashboard} />
+        <Stack.Screen name="PARENT_DASHBOARD" component={ParentDashboard} />
         <Stack.Screen name="SETTINGS" component={SettingsScreen} />
         <Stack.Screen name="FACE_DETECTION" component={FaceDetectionGame} />
         <Stack.Screen name="SIGN_LANGUAGE" component={SignLanguageGame} />
